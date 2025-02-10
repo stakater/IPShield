@@ -17,12 +17,20 @@ limitations under the License.
 package utils
 
 import (
+	"context"
 	"fmt"
 	"os"
 	"os/exec"
 	"strings"
 
 	. "github.com/onsi/ginkgo/v2" //nolint:golint,revive
+	corev1 "k8s.io/api/core/v1"
+	"k8s.io/apimachinery/pkg/api/errors"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/types"
+	"k8s.io/apimachinery/pkg/util/intstr"
+	"k8s.io/client-go/kubernetes"
+	"sigs.k8s.io/controller-runtime/pkg/client"
 )
 
 const (
@@ -137,4 +145,55 @@ func GetProjectDir() (string, error) {
 	}
 	wd = strings.Replace(wd, "/test/e2e", "", -1)
 	return wd, nil
+}
+
+func CreateIfNotExists(ctx context.Context, client client.Client, object client.Object, objName, objNamespace string) error {
+	err := client.Get(ctx, types.NamespacedName{Name: objName, Namespace: objNamespace}, object)
+	if err != nil {
+		if errors.IsNotFound(err) {
+			object.SetName(objName)
+			object.SetNamespace(objNamespace)
+			err = client.Create(ctx, object)
+			if err != nil {
+				return err
+			}
+		} else {
+			return err
+		}
+	}
+	return nil
+}
+
+func CreateNamespace(ctx context.Context, clientset *kubernetes.Clientset, name string) error {
+	ns := &corev1.Namespace{
+		ObjectMeta: metav1.ObjectMeta{Name: name},
+	}
+	_, err := clientset.CoreV1().Namespaces().Create(ctx, ns, metav1.CreateOptions{})
+	if err == nil || errors.IsAlreadyExists(err) {
+		fmt.Println("Namespace available: ", name)
+		return nil
+	} else {
+		return err
+	}
+}
+
+// Create ClusterIP Service
+func CreateClusterIPService(ctx context.Context, client client.Client, namespace, name string) error {
+	service := &corev1.Service{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      name,
+			Namespace: namespace,
+		},
+		Spec: corev1.ServiceSpec{
+			Selector: map[string]string{"app": "nginx"},
+			Ports: []corev1.ServicePort{{
+				Protocol:   corev1.ProtocolTCP,
+				Port:       8000,
+				TargetPort: intstr.FromInt32(80),
+			}},
+			Type: corev1.ServiceTypeClusterIP,
+		},
+	}
+
+	return CreateIfNotExists(ctx, client, service, name, namespace)
 }
