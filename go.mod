@@ -8,7 +8,7 @@ require (
 	github.com/deckarep/golang-set/v2 v2.7.0
 	github.com/onsi/ginkgo/v2 v2.22.2
 	github.com/onsi/gomega v1.36.2
-	github.com/openshift/api v0.0.0-20250207102212-9e59a77ed2e0
+	github.com/openshift/api v0.0.0-20250212141159-b8a067b12e1c
 	k8s.io/apimachinery v0.32.1
 	k8s.io/client-go v0.32.1
 	sigs.k8s.io/controller-runtime v0.20.1
