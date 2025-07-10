@@ -4,20 +4,20 @@ metadata:
   annotations:
     controller-gen.kubebuilder.io/version: v0.14.0
   creationTimestamp: null
-  name: routewhitelists.networking.stakater.com
+  name: routeallowlists.networking.stakater.com
 spec:
   group: networking.stakater.com
   names:
-    kind: RouteWhitelist
-    listKind: RouteWhitelistList
-    plural: routewhitelists
-    singular: routewhitelist
+    kind: RouteAllowlist
+    listKind: RouteAllowlistList
+    plural: routeallowlists
+    singular: routeallowlist
   scope: Namespaced
   versions:
   - name: v1alpha1
     schema:
       openAPIV3Schema:
-        description: RouteWhitelist is the Schema for the routewhitelists API
+        description: RouteAllowlist is the Schema for the RouteAllowlists API
         properties:
           apiVersion:
             description: |-
@@ -37,7 +37,7 @@ spec:
           metadata:
             type: object
           spec:
-            description: RouteWhitelistSpec defines the desired state of RouteWhitelist
+            description: RouteAllowlistSpec defines the desired state of RouteAllowlist
             properties:
               ipRanges:
                 items:
@@ -98,7 +98,7 @@ spec:
             type: object
           status:
             description: |-
-              RouteWhitelistStatus defines the observed state of RouteWhitelist
+              RouteAllowlistStatus defines the observed state of RouteAllowlist
               TODO add conditions
             properties:
               conditions:

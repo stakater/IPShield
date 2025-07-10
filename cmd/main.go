@@ -127,7 +127,7 @@ func main() {
 		NewCache: func(config *rest.Config, opts cache.Options) (cache.Cache, error) {
 			// Only watch marked secrets
 			opts.ByObject = map[client.Object]cache.ByObject{
-				&networkingv1alpha1.RouteWhitelist{}: {
+				&networkingv1alpha1.RouteAllowlist{}: {
 					Namespaces: map[string]cache.Config{
 						watchNamespace: {},
 					},
@@ -141,13 +141,13 @@ func main() {
 		os.Exit(1)
 	}
 
-	if err = (&controller.RouteWhitelistReconciler{
+	if err = (&controller.RouteAllowlistReconciler{
 		Client:             mgr.GetClient(),
 		Scheme:             mgr.GetScheme(),
 		WatchNamespace:     watchNamespace,
 		WatchResourceLabel: controller.GetWatchResourceLabel(),
 	}).SetupWithManager(mgr); err != nil {
-		setupLog.Error(err, "unable to create controller", "controller", "RouteWhitelist")
+		setupLog.Error(err, "unable to create controller", "controller", "RouteAllowlist")
 		os.Exit(1)
 	}
 	//+kubebuilder:scaffold:builder

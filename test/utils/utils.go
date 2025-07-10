@@ -219,13 +219,13 @@ func CreateClusterIPService(ctx context.Context, client client.Client, namespace
 	return CreateIfNotExists(ctx, client, service, name, namespace)
 }
 
-func GetRouteWhiteListSpec(name, ns string, ips []string) *networkingv1alpha1.RouteWhitelist {
-	return &networkingv1alpha1.RouteWhitelist{
+func GetRouteAllowlistSpec(name, ns string, ips []string) *networkingv1alpha1.RouteAllowlist {
+	return &networkingv1alpha1.RouteAllowlist{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      name,
 			Namespace: ns,
 		},
-		Spec: networkingv1alpha1.RouteWhitelistSpec{
+		Spec: networkingv1alpha1.RouteAllowlistSpec{
 			LabelSelector: &metav1.LabelSelector{
 				MatchLabels: map[string]string{
 					"ipshield": strconv.FormatBool(true),

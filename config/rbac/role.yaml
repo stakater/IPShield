@@ -19,7 +19,7 @@ rules:
 - apiGroups:
   - networking.stakater.com
   resources:
-  - routewhitelists
+  - routeallowlists
   verbs:
   - create
   - delete
@@ -31,14 +31,14 @@ rules:
 - apiGroups:
   - networking.stakater.com
   resources:
-  - routewhitelists/finalizers
+  - routeallowlists/finalizers
   verbs:
   - patch
   - update
 - apiGroups:
   - networking.stakater.com
   resources:
-  - routewhitelists/status
+  - routeallowlists/status
   verbs:
   - get
   - patch

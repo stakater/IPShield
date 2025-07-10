@@ -17,7 +17,7 @@ resources:
   controller: true
   domain: stakater.com
   group: networking
-  kind: RouteWhitelist
+  kind: RouteAllowlist
   path: github.com/stakater/ipshield-operator/api/v1alpha1
   version: v1alpha1
 version: "3"

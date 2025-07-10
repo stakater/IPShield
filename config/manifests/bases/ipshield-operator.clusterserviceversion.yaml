@@ -10,10 +10,10 @@ spec:
   apiservicedefinitions: {}
   customresourcedefinitions:
     owned:
-    - description: RouteWhitelist is the Schema for the routewhitelists API
-      displayName: Route Whitelist
-      kind: RouteWhitelist
-      name: routewhitelists.networking.stakater.com
+    - description: RouteAllowlist is the Schema for the RouteAllowlists API
+      displayName: Route Allowlist
+      kind: RouteAllowlist
+      name: routeallowlists.networking.stakater.com
       version: v1alpha1
   description: Stakater networking operator for managing routes access
   displayName: IPShield Operator
@@ -37,7 +37,7 @@ spec:
   - Openshift
   - Stakater AB
   - Routes
-  - IP Whitelisting
+  - IP Acccess Control
   - Networking
   - Operator-SDK
   links:

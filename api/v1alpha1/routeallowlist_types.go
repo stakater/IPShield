@@ -23,15 +23,15 @@ import (
 // EDIT THIS FILE!  THIS IS SCAFFOLDING FOR YOU TO OWN!
 // NOTE: json tags are required.  Any new fields you add must have json tags for the fields to be serialized.
 
-// RouteWhitelistSpec defines the desired state of RouteWhitelist
-type RouteWhitelistSpec struct {
+// RouteAllowlistSpec defines the desired state of RouteAllowlist
+type RouteAllowlistSpec struct {
 	LabelSelector *metav1.LabelSelector `json:"labelSelector"`
 	IPRanges      []string              `json:"ipRanges"`
 }
 
-// RouteWhitelistStatus defines the observed state of RouteWhitelist
+// RouteAllowlistStatus defines the observed state of RouteAllowlist
 // TODO add conditions
-type RouteWhitelistStatus struct {
+type RouteAllowlistStatus struct {
 	// INSERT ADDITIONAL STATUS FIELD - define observed state of cluster
 	// Important: Run "make" to regenerate code after modifying this file
 	Conditions []metav1.Condition `json:"conditions,omitempty"`
@@ -40,24 +40,24 @@ type RouteWhitelistStatus struct {
 //+kubebuilder:object:root=true
 //+kubebuilder:subresource:status
 
-// RouteWhitelist is the Schema for the routewhitelists API
-type RouteWhitelist struct {
+// RouteAllowlist is the Schema for the RouteAllowlists API
+type RouteAllowlist struct {
 	metav1.TypeMeta   `json:",inline"`
 	metav1.ObjectMeta `json:"metadata,omitempty"`
 
-	Spec   RouteWhitelistSpec   `json:"spec,omitempty"`
-	Status RouteWhitelistStatus `json:"status,omitempty"`
+	Spec   RouteAllowlistSpec   `json:"spec,omitempty"`
+	Status RouteAllowlistStatus `json:"status,omitempty"`
 }
 
 //+kubebuilder:object:root=true
 
-// RouteWhitelistList contains a list of RouteWhitelist
-type RouteWhitelistList struct {
+// RouteAllowlistList contains a list of RouteAllowlist
+type RouteAllowlistList struct {
 	metav1.TypeMeta `json:",inline"`
 	metav1.ListMeta `json:"metadata,omitempty"`
-	Items           []RouteWhitelist `json:"items"`
+	Items           []RouteAllowlist `json:"items"`
 }
 
 func init() {
-	SchemeBuilder.Register(&RouteWhitelist{}, &RouteWhitelistList{})
+	SchemeBuilder.Register(&RouteAllowlist{}, &RouteAllowlistList{})
 }

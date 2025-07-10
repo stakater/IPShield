@@ -117,7 +117,7 @@ var _ = Describe("controller", Ordered, func() {
 	})
 
 	Context("Operator", func() {
-		var whitelist *networkingv1alpha1.RouteWhitelist
+		var allowlist *networkingv1alpha1.RouteAllowlist
 
 		It("should run successfully", func() {
 			Skip("Skipping installation test")
@@ -211,7 +211,7 @@ var _ = Describe("controller", Ordered, func() {
 		})
 
 		AfterEach(func() {
-			Expect(client.Delete(context.TODO(), whitelist))
+			Expect(client.Delete(context.TODO(), allowlist))
 
 			Expect(utils.Run(exec.Command("kubectl", "delete", "route", RouteName, "-n", TestingNamespace))).
 				Error().
@@ -220,8 +220,8 @@ var _ = Describe("controller", Ordered, func() {
 		})
 
 		It("Deploy CR but route doesn't have label", func() {
-			whitelist = utils.GetRouteWhiteListSpec("sample", IPShieldCRNamespace, []string{"10.200.15.13"})
-			err := client.Create(context.TODO(), whitelist)
+			allowlist = utils.GetRouteAllowlistSpec("sample", IPShieldCRNamespace, []string{"10.200.15.13"})
+			err := client.Create(context.TODO(), allowlist)
 			Expect(err).NotTo(HaveOccurred())
 
 			r := &route.Route{}
@@ -230,7 +230,7 @@ var _ = Describe("controller", Ordered, func() {
 			Expect(err).NotTo(HaveOccurred())
 			Expect(r).NotTo(BeNil())
 			Expect(r.Labels).ShouldNot(HaveKey(controller.IPShieldWatchedResourceLabel))
-			Expect(r.Annotations).ShouldNot(HaveKeyWithValue(controller.WhiteListAnnotation, "10.200.15.13"))
+			Expect(r.Annotations).ShouldNot(HaveKeyWithValue(controller.AllowlistAnnotation, "10.200.15.13"))
 		})
 
 		It("Deploy CR and route has label", func() {
@@ -244,8 +244,8 @@ var _ = Describe("controller", Ordered, func() {
 			r.Labels[controller.IPShieldWatchedResourceLabel] = strconv.FormatBool(true)
 			Expect(client.Update(context.TODO(), r)).NotTo(HaveOccurred())
 
-			whitelist = utils.GetRouteWhiteListSpec("sample", IPShieldCRNamespace, []string{"10.200.15.13"})
-			err = client.Create(context.TODO(), whitelist)
+			allowlist = utils.GetRouteAllowlistSpec("sample", IPShieldCRNamespace, []string{"10.200.15.13"})
+			err = client.Create(context.TODO(), allowlist)
 			Expect(err).NotTo(HaveOccurred())
 
 			// takes a while to update the route
@@ -256,10 +256,10 @@ var _ = Describe("controller", Ordered, func() {
 			Expect(r).NotTo(BeNil())
 
 			Expect(r.Labels).Should(HaveKeyWithValue(controller.IPShieldWatchedResourceLabel, strconv.FormatBool(true)))
-			Expect(r.Annotations).Should(HaveKeyWithValue(controller.WhiteListAnnotation, "10.200.15.13"))
+			Expect(r.Annotations).Should(HaveKeyWithValue(controller.AllowlistAnnotation, "10.200.15.13"))
 		})
 
-		It("Deploy CR and route already had whitelist 1 element", func() {
+		It("Deploy CR and route already had allowlist 1 element", func() {
 			r := &route.Route{}
 			err := client.Get(context.TODO(), types.NamespacedName{Name: RouteName, Namespace: TestingNamespace}, r)
 
@@ -267,14 +267,14 @@ var _ = Describe("controller", Ordered, func() {
 			Expect(r).NotTo(BeNil())
 
 			r.Labels[controller.IPShieldWatchedResourceLabel] = strconv.FormatBool(true)
-			r.Annotations[controller.WhiteListAnnotation] = "192.168.10.32"
+			r.Annotations[controller.AllowlistAnnotation] = "192.168.10.32"
 
 			Expect(client.Update(context.TODO(), r)).NotTo(HaveOccurred())
 
 			time.Sleep(5 * time.Second)
 
-			whitelist = utils.GetRouteWhiteListSpec("sample", IPShieldCRNamespace, []string{"10.200.15.13", "10.200.15.132"})
-			err = client.Create(context.TODO(), whitelist)
+			allowlist = utils.GetRouteAllowlistSpec("sample", IPShieldCRNamespace, []string{"10.200.15.13", "10.200.15.132"})
+			err = client.Create(context.TODO(), allowlist)
 			Expect(err).NotTo(HaveOccurred())
 
 			// takes a while to update the route
@@ -284,8 +284,8 @@ var _ = Describe("controller", Ordered, func() {
 			Expect(err).NotTo(HaveOccurred())
 			Expect(r).NotTo(BeNil())
 
-			Expect(r.Annotations).Should(HaveKey(controller.WhiteListAnnotation))
-			Expect(strings.Split(r.Annotations[controller.WhiteListAnnotation], " ")).
+			Expect(r.Annotations).Should(HaveKey(controller.AllowlistAnnotation))
+			Expect(strings.Split(r.Annotations[controller.AllowlistAnnotation], " ")).
 				Should(ConsistOf("10.200.15.13", "10.200.15.132", "192.168.10.32"))
 
 		})
@@ -298,14 +298,14 @@ var _ = Describe("controller", Ordered, func() {
 			Expect(r).NotTo(BeNil())
 
 			r.Labels[controller.IPShieldWatchedResourceLabel] = strconv.FormatBool(true)
-			r.Annotations[controller.WhiteListAnnotation] = "10.200.15.13"
+			r.Annotations[controller.AllowlistAnnotation] = "10.200.15.13"
 
 			Expect(client.Update(context.TODO(), r)).NotTo(HaveOccurred())
 
 			time.Sleep(5 * time.Second)
 
-			whitelist = utils.GetRouteWhiteListSpec("sample", IPShieldCRNamespace, []string{"10.200.15.13", "10.200.15.132"})
-			err = client.Create(context.TODO(), whitelist)
+			allowlist = utils.GetRouteAllowlistSpec("sample", IPShieldCRNamespace, []string{"10.200.15.13", "10.200.15.132"})
+			err = client.Create(context.TODO(), allowlist)
 			Expect(err).NotTo(HaveOccurred())
 
 			// takes a while to update the route
@@ -315,11 +315,11 @@ var _ = Describe("controller", Ordered, func() {
 				Should(Succeed())
 			Expect(r).NotTo(BeNil())
 
-			Expect(r.Annotations).Should(HaveKey(controller.WhiteListAnnotation))
-			Expect(strings.Split(r.Annotations[controller.WhiteListAnnotation], " ")).
+			Expect(r.Annotations).Should(HaveKey(controller.AllowlistAnnotation))
+			Expect(strings.Split(r.Annotations[controller.AllowlistAnnotation], " ")).
 				Should(ConsistOf("10.200.15.13", "10.200.15.132"))
 
-			Expect(client.Delete(context.TODO(), whitelist)).Error().ShouldNot(HaveOccurred())
+			Expect(client.Delete(context.TODO(), allowlist)).Error().ShouldNot(HaveOccurred())
 
 			time.Sleep(5 * time.Second)
 
@@ -327,12 +327,12 @@ var _ = Describe("controller", Ordered, func() {
 			Expect(err).NotTo(HaveOccurred())
 			Expect(r).NotTo(BeNil())
 
-			Expect(r.Annotations).Should(HaveKey(controller.WhiteListAnnotation))
-			Expect(strings.Split(r.Annotations[controller.WhiteListAnnotation], " ")).
+			Expect(r.Annotations).Should(HaveKey(controller.AllowlistAnnotation))
+			Expect(strings.Split(r.Annotations[controller.AllowlistAnnotation], " ")).
 				Should(ConsistOf("10.200.15.13"))
 		})
 
-		It("IPShield watch label was updated to false when route initially had pre populated whitelist", func() {
+		It("IPShield watch label was updated to false when route initially had pre populated allowlist", func() {
 			r := &route.Route{}
 			err := client.Get(context.TODO(), types.NamespacedName{Name: RouteName, Namespace: TestingNamespace}, r)
 
@@ -340,14 +340,14 @@ var _ = Describe("controller", Ordered, func() {
 			Expect(r).NotTo(BeNil())
 
 			r.Labels[controller.IPShieldWatchedResourceLabel] = strconv.FormatBool(true)
-			r.Annotations[controller.WhiteListAnnotation] = "10.200.15.13"
+			r.Annotations[controller.AllowlistAnnotation] = "10.200.15.13"
 
 			Expect(client.Update(context.TODO(), r)).NotTo(HaveOccurred())
 
 			time.Sleep(5 * time.Second)
 
-			whitelist = utils.GetRouteWhiteListSpec("sample", IPShieldCRNamespace, []string{"10.200.15.13", "10.200.15.132"})
-			err = client.Create(context.TODO(), whitelist)
+			allowlist = utils.GetRouteAllowlistSpec("sample", IPShieldCRNamespace, []string{"10.200.15.13", "10.200.15.132"})
+			err = client.Create(context.TODO(), allowlist)
 			Expect(err).NotTo(HaveOccurred())
 
 			// takes a while to update the route
@@ -356,8 +356,8 @@ var _ = Describe("controller", Ordered, func() {
 			Expect(client.Get(context.TODO(), types.NamespacedName{Name: RouteName, Namespace: TestingNamespace}, r))
 			Expect(r).NotTo(BeNil())
 
-			Expect(r.Annotations).Should(HaveKey(controller.WhiteListAnnotation))
-			Expect(strings.Split(r.Annotations[controller.WhiteListAnnotation], " ")).
+			Expect(r.Annotations).Should(HaveKey(controller.AllowlistAnnotation))
+			Expect(strings.Split(r.Annotations[controller.AllowlistAnnotation], " ")).
 				Should(ConsistOf("10.200.15.13", "10.200.15.132"))
 
 			r.Labels[controller.IPShieldWatchedResourceLabel] = strconv.FormatBool(false)
@@ -369,12 +369,12 @@ var _ = Describe("controller", Ordered, func() {
 			Expect(err).NotTo(HaveOccurred())
 			Expect(r).NotTo(BeNil())
 
-			Expect(r.Annotations).Should(HaveKey(controller.WhiteListAnnotation))
-			Expect(strings.Split(r.Annotations[controller.WhiteListAnnotation], " ")).
+			Expect(r.Annotations).Should(HaveKey(controller.AllowlistAnnotation))
+			Expect(strings.Split(r.Annotations[controller.AllowlistAnnotation], " ")).
 				Should(ConsistOf("10.200.15.13"))
 		})
 
-		It("IPShield watch label was updated to false when route initially had empty whitelist", func() {
+		It("IPShield watch label was updated to false when route initially had empty allowlist", func() {
 			r := &route.Route{}
 			err := client.Get(context.TODO(), types.NamespacedName{Name: RouteName, Namespace: TestingNamespace}, r)
 
@@ -387,8 +387,8 @@ var _ = Describe("controller", Ordered, func() {
 
 			time.Sleep(5 * time.Second)
 
-			whitelist = utils.GetRouteWhiteListSpec("sample", IPShieldCRNamespace, []string{"10.200.15.13", "10.200.15.132"})
-			err = client.Create(context.TODO(), whitelist)
+			allowlist = utils.GetRouteAllowlistSpec("sample", IPShieldCRNamespace, []string{"10.200.15.13", "10.200.15.132"})
+			err = client.Create(context.TODO(), allowlist)
 			Expect(err).NotTo(HaveOccurred())
 
 			// takes a while to update the route
@@ -397,8 +397,8 @@ var _ = Describe("controller", Ordered, func() {
 			Expect(client.Get(context.TODO(), types.NamespacedName{Name: RouteName, Namespace: TestingNamespace}, r))
 			Expect(r).NotTo(BeNil())
 
-			Expect(r.Annotations).Should(HaveKey(controller.WhiteListAnnotation))
-			Expect(strings.Split(r.Annotations[controller.WhiteListAnnotation], " ")).
+			Expect(r.Annotations).Should(HaveKey(controller.AllowlistAnnotation))
+			Expect(strings.Split(r.Annotations[controller.AllowlistAnnotation], " ")).
 				Should(ConsistOf("10.200.15.13", "10.200.15.132"))
 
 			r.Labels[controller.IPShieldWatchedResourceLabel] = strconv.FormatBool(false)
@@ -410,10 +410,10 @@ var _ = Describe("controller", Ordered, func() {
 			Expect(err).NotTo(HaveOccurred())
 			Expect(r).NotTo(BeNil())
 
-			Expect(r.Annotations).ShouldNot(HaveKey(controller.WhiteListAnnotation))
+			Expect(r.Annotations).ShouldNot(HaveKey(controller.AllowlistAnnotation))
 		})
 
-		It("whitelist annotation was modified directly", func() {
+		It("allowlist annotation was modified directly", func() {
 			r := &route.Route{}
 			err := client.Get(context.TODO(), types.NamespacedName{Name: RouteName, Namespace: TestingNamespace}, r)
 
@@ -425,8 +425,8 @@ var _ = Describe("controller", Ordered, func() {
 
 			time.Sleep(5 * time.Second)
 
-			whitelist = utils.GetRouteWhiteListSpec("sample", IPShieldCRNamespace, []string{"10.200.15.13", "10.200.15.132"})
-			err = client.Create(context.TODO(), whitelist)
+			allowlist = utils.GetRouteAllowlistSpec("sample", IPShieldCRNamespace, []string{"10.200.15.13", "10.200.15.132"})
+			err = client.Create(context.TODO(), allowlist)
 			Expect(err).NotTo(HaveOccurred())
 
 			// takes a while to update the route
@@ -436,11 +436,11 @@ var _ = Describe("controller", Ordered, func() {
 				To(Succeed())
 			Expect(r).NotTo(BeNil())
 
-			Expect(r.Annotations).Should(HaveKey(controller.WhiteListAnnotation))
-			Expect(strings.Split(r.Annotations[controller.WhiteListAnnotation], " ")).
+			Expect(r.Annotations).Should(HaveKey(controller.AllowlistAnnotation))
+			Expect(strings.Split(r.Annotations[controller.AllowlistAnnotation], " ")).
 				Should(ConsistOf("10.200.15.13", "10.200.15.132"))
 
-			r.Annotations[controller.WhiteListAnnotation] = "10.13.42.54"
+			r.Annotations[controller.AllowlistAnnotation] = "10.13.42.54"
 			Expect(client.Update(context.TODO(), r)).Error().ShouldNot(HaveOccurred())
 
 			time.Sleep(5 * time.Second)
@@ -449,8 +449,8 @@ var _ = Describe("controller", Ordered, func() {
 			Expect(err).NotTo(HaveOccurred())
 			Expect(r).NotTo(BeNil())
 
-			Expect(r.Annotations).Should(HaveKey(controller.WhiteListAnnotation))
-			Expect(strings.Split(r.Annotations[controller.WhiteListAnnotation], " ")).
+			Expect(r.Annotations).Should(HaveKey(controller.AllowlistAnnotation))
+			Expect(strings.Split(r.Annotations[controller.AllowlistAnnotation], " ")).
 				Should(ConsistOf("10.200.15.13", "10.200.15.132", "10.13.42.54"))
 		})
 
@@ -466,12 +466,12 @@ var _ = Describe("controller", Ordered, func() {
 
 			time.Sleep(5 * time.Second)
 
-			whitelist = utils.GetRouteWhiteListSpec("sample", IPShieldCRNamespace, []string{"10.200.15.13", "10.200.15.132"})
-			err = client.Create(context.TODO(), whitelist)
+			allowlist = utils.GetRouteAllowlistSpec("sample", IPShieldCRNamespace, []string{"10.200.15.13", "10.200.15.132"})
+			err = client.Create(context.TODO(), allowlist)
 			Expect(err).NotTo(HaveOccurred())
 
-			whitelist2 := utils.GetRouteWhiteListSpec("samplex2", IPShieldCRNamespace, []string{"10.200.15.14", "10.200.15.135"})
-			err = client.Create(context.TODO(), whitelist2)
+			allowlist := utils.GetRouteAllowlistSpec("samplex2", IPShieldCRNamespace, []string{"10.200.15.14", "10.200.15.135"})
+			err = client.Create(context.TODO(), allowlist)
 			Expect(err).NotTo(HaveOccurred())
 
 			// takes a while to update the route
@@ -481,11 +481,11 @@ var _ = Describe("controller", Ordered, func() {
 				To(Succeed())
 			Expect(r).NotTo(BeNil())
 
-			Expect(r.Annotations).Should(HaveKey(controller.WhiteListAnnotation))
-			Expect(strings.Split(r.Annotations[controller.WhiteListAnnotation], " ")).
+			Expect(r.Annotations).Should(HaveKey(controller.AllowlistAnnotation))
+			Expect(strings.Split(r.Annotations[controller.AllowlistAnnotation], " ")).
 				Should(ConsistOf("10.200.15.13", "10.200.15.132", "10.200.15.14", "10.200.15.135"))
 
-			Expect(client.Delete(context.TODO(), whitelist2)).Error().ShouldNot(HaveOccurred())
+			Expect(client.Delete(context.TODO(), allowlist)).Error().ShouldNot(HaveOccurred())
 		})
 	})
 
