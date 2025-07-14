@@ -3,11 +3,17 @@ package: ipshield-operator
 name: preview
 entries:
   - name: ipshield-operator.v0.0.6
+    replaces: ipshield-operator.v0.0.5
     skipRange: ">=0.0.1 <0.0.6"
     
   - name: ipshield-operator.v0.0.5
     replaces: ipshield-operator.v0.0.4
-
+    skips:
+      - ipshield-operator.v0.0.1
+      - ipshield-operator.v0.0.2
+      - ipshield-operator.v0.0.3
+      - ipshield-operator.v0.0.4
+      
   - name: ipshield-operator.v0.0.4
     replaces: ipshield-operator.v0.0.3
   - name: ipshield-operator.v0.0.3
