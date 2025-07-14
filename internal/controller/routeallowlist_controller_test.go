@@ -97,10 +97,9 @@ var _ = Describe("RouteAllowlist Controller", Ordered, func() {
 			Build()
 
 		reconciler = &RouteAllowlistReconciler{
-			Client:             fakeClient,
-			Scheme:             scheme,
-			WatchNamespace:     DefaultWatchNamespace,
-			WatchResourceLabel: IPShieldWatchedResourceLabel,
+			Client:         fakeClient,
+			Scheme:         scheme,
+			WatchNamespace: DefaultWatchNamespace,
 		}
 	})
 
