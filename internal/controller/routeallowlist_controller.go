@@ -54,9 +54,8 @@ const (
 
 type RouteAllowlistReconciler struct {
 	client.Client
-	Scheme             *runtime.Scheme
-	WatchNamespace     string
-	WatchResourceLabel string
+	Scheme         *runtime.Scheme
+	WatchNamespace string
 }
 
 func setCondition(conditions *[]metav1.Condition, conditionType, status, reason, message string) {
@@ -90,10 +89,6 @@ func getEnv(key, defaultValue string) string {
 
 func GetWatchNamespace() string {
 	return getEnv("WATCH_NAMESPACE", DefaultWatchNamespace)
-}
-
-func GetWatchResourceLabel() string {
-	return getEnv("WATCH_RESOURCE_LABEL", IPShieldWatchedResourceLabel)
 }
 
 func (r *RouteAllowlistReconciler) patchResourceAndStatus(ctx context.Context, obj client.Object, patch client.Patch, logger logr.Logger) error {
@@ -185,7 +180,7 @@ func (r *RouteAllowlistReconciler) handleUpdate(ctx context.Context, routes *rou
 		apimeta.RemoveStatusCondition(&cr.Status.Conditions, "Updating") // removing previous route condition
 		setCondition(&cr.Status.Conditions, "Updating", "True", "UpdatingRoute", fmt.Sprintf("Updating route '%s'", watchedRoute.Name))
 
-		if val, ok := watchedRoute.Labels[r.WatchResourceLabel]; !ok || val != "true" {
+		if val, ok := watchedRoute.Labels[IPShieldWatchedResourceLabel]; !ok || val != "true" {
 			err = r.unwatchRoute(ctx, watchedRoute, client.MergeFrom(watchedRoute.DeepCopy()), cr, configMap, logger)
 
 			if err != nil {
@@ -391,7 +386,7 @@ func (r *RouteAllowlistReconciler) mapRouteToRouteAllowlist(ctx context.Context,
 	logger := log.FromContext(ctx).WithName("mapRouteToRouteAllowlist")
 	openshiftRoute := obj.(*route.Route)
 
-	if val, ok := openshiftRoute.Labels[r.WatchResourceLabel]; !ok || val != "true" {
+	if val, ok := openshiftRoute.Labels[IPShieldWatchedResourceLabel]; !ok || val != "true" {
 		return nil
 	}
 
