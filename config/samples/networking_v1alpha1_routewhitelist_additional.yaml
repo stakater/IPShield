@@ -1,10 +1,10 @@
 apiVersion: networking.stakater.com/v1alpha1
-kind: RouteWhitelist
+kind: RouteAllowlist
 metadata:
   labels:
     app.kubernetes.io/name: ipshield-operator
     app.kubernetes.io/managed-by: kustomize
-  name: routewhitelist-additional-sample
+  name: routeallowlist-additional-sample
 spec:
   labelSelector:
     matchLabels:

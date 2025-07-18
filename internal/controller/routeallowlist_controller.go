@@ -44,15 +44,15 @@ import (
 )
 
 const (
-	IPShieldWatchedResourceLabel = "ip-whitelist.stakater.cloud/enabled"
-	RouteWhitelistFinalizer      = "ip-whitelist.stakater.cloud/finalizer"
-	WhiteListAnnotation          = "haproxy.router.openshift.io/ip_whitelist"
+	IPShieldWatchedResourceLabel = "ipshield.stakater.cloud/enabled"
+	RouteAllowlistFinalizer      = "ipshield.stakater.cloud/finalizer"
+	AllowlistAnnotation          = "haproxy.router.openshift.io/ip_whitelist"
 
 	DefaultWatchNamespace      = "ipshield-cr"
 	WatchedRoutesConfigMapName = "watched-routes"
 )
 
-type RouteWhitelistReconciler struct {
+type RouteAllowlistReconciler struct {
 	client.Client
 	Scheme         *runtime.Scheme
 	WatchNamespace string
@@ -80,18 +80,18 @@ func setWarning(conditions *[]metav1.Condition, reconcileType string, err error)
 	setCondition(conditions, reconcileType, string(metav1.ConditionFalse), "ReconcileWarning", fmt.Errorf("an error occurred %s", err).Error())
 }
 
-func GetWatchNamespace() string {
-	var watchNamespaceEnvVar = "WATCH_NAMESPACE"
-
-	ns, found := os.LookupEnv(watchNamespaceEnvVar)
-	if !found {
-		// fallback to default
-		ns = DefaultWatchNamespace
+func getEnv(key, defaultValue string) string {
+	if value, exists := os.LookupEnv(key); exists {
+		return value
 	}
-	return ns
+	return defaultValue
 }
 
-func (r *RouteWhitelistReconciler) patchResourceAndStatus(ctx context.Context, obj client.Object, patch client.Patch, logger logr.Logger) error {
+func GetWatchNamespace() string {
+	return getEnv("WATCH_NAMESPACE", DefaultWatchNamespace)
+}
+
+func (r *RouteAllowlistReconciler) patchResourceAndStatus(ctx context.Context, obj client.Object, patch client.Patch, logger logr.Logger) error {
 	// Sending a deep copy because the object will be updated according to the remote server state
 	// so we need to keep the original object for the status update otherwise conditions will be lost
 	err := r.Status().Patch(ctx, obj.DeepCopyObject().(client.Object), patch)
@@ -104,17 +104,17 @@ func (r *RouteWhitelistReconciler) patchResourceAndStatus(ctx context.Context, o
 	return r.Patch(ctx, obj, patch)
 }
 
-//+kubebuilder:rbac:groups=networking.stakater.com,resources=routewhitelists,verbs=get;list;watch;create;update;patch;delete
-//+kubebuilder:rbac:groups=networking.stakater.com,resources=routewhitelists/status,verbs=get;update;patch
-//+kubebuilder:rbac:groups=networking.stakater.com,resources=routewhitelists/finalizers,verbs=update;patch
+//+kubebuilder:rbac:groups=networking.stakater.com,resources=routeallowlists,verbs=get;list;watch;create;update;patch;delete
+//+kubebuilder:rbac:groups=networking.stakater.com,resources=routeallowlists/status,verbs=get;update;patch
+//+kubebuilder:rbac:groups=networking.stakater.com,resources=routeallowlists/finalizers,verbs=update;patch
 //+kubebuilder:rbac:groups=route.openshift.io,resources=routes,verbs=get;list;watch;update;patch
 //+kubebuilder:rbac:groups=core,resources=configmaps,verbs=get;list;watch;create;update;patch;delete
 
-func (r *RouteWhitelistReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Result, error) {
+func (r *RouteAllowlistReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Result, error) {
 	logger := log.FromContext(ctx).WithName("ipShield-controller")
 	logger.Info("Reconciling IPShield")
 
-	cr := &networkingv1alpha1.RouteWhitelist{}
+	cr := &networkingv1alpha1.RouteAllowlist{}
 	err := r.Get(ctx, req.NamespacedName, cr)
 	if err != nil {
 		if errors.IsNotFound(err) {
@@ -126,7 +126,7 @@ func (r *RouteWhitelistReconciler) Reconcile(ctx context.Context, req ctrl.Reque
 
 	apimeta.RemoveStatusCondition(&cr.Status.Conditions, "Admitted")
 	apimeta.RemoveStatusCondition(&cr.Status.Conditions, "Updating")
-	setCondition(&cr.Status.Conditions, "WhiteListReconciling", "True", "ProcessingWhitelist", "Searching for routes")
+	setCondition(&cr.Status.Conditions, "AllowlistReconciling", "True", "ProcessingAllowlist", "Searching for routes")
 
 	selector, err := metav1.LabelSelectorAsSelector(cr.Spec.LabelSelector)
 	if err != nil {
@@ -152,7 +152,7 @@ func (r *RouteWhitelistReconciler) Reconcile(ctx context.Context, req ctrl.Reque
 	if cr.DeletionTimestamp != nil {
 		return r.handleDelete(ctx, routes, cr, patchBase, logger)
 	} else {
-		controllerutil.AddFinalizer(cr, RouteWhitelistFinalizer)
+		controllerutil.AddFinalizer(cr, RouteAllowlistFinalizer)
 	}
 
 	if len(routes.Items) == 0 {
@@ -163,7 +163,7 @@ func (r *RouteWhitelistReconciler) Reconcile(ctx context.Context, req ctrl.Reque
 	return r.handleUpdate(ctx, routes, cr, patchBase, logger)
 }
 
-func (r *RouteWhitelistReconciler) handleUpdate(ctx context.Context, routes *route.RouteList, cr *networkingv1alpha1.RouteWhitelist, patch client.Patch, logger logr.Logger) (ctrl.Result, error) {
+func (r *RouteAllowlistReconciler) handleUpdate(ctx context.Context, routes *route.RouteList, cr *networkingv1alpha1.RouteAllowlist, patch client.Patch, logger logr.Logger) (ctrl.Result, error) {
 	apimeta.RemoveStatusCondition(&cr.Status.Conditions, "ConfigMapUpdateFailure")
 	apimeta.RemoveStatusCondition(&cr.Status.Conditions, "RouteUpdateFailure")
 
@@ -200,7 +200,7 @@ func (r *RouteWhitelistReconciler) handleUpdate(ctx context.Context, routes *rou
 			watchedRoute.Annotations = make(map[string]string)
 		}
 
-		watchedRoute.Annotations[WhiteListAnnotation] = mergeSet(strings.Split(watchedRoute.Annotations[WhiteListAnnotation], " "), cr.Spec.IPRanges)
+		watchedRoute.Annotations[AllowlistAnnotation] = mergeSet(strings.Split(watchedRoute.Annotations[AllowlistAnnotation], " "), cr.Spec.IPRanges)
 
 		err = r.Patch(ctx, &watchedRoute, routePatchBase)
 
@@ -213,13 +213,13 @@ func (r *RouteWhitelistReconciler) handleUpdate(ctx context.Context, routes *rou
 	}
 
 	apimeta.RemoveStatusCondition(&cr.Status.Conditions, "Updating")
-	apimeta.RemoveStatusCondition(&cr.Status.Conditions, "WhiteListReconciling")
+	apimeta.RemoveStatusCondition(&cr.Status.Conditions, "AllowlistReconciling")
 	setSuccessful(&cr.Status.Conditions, "Admitted")
 
 	return ctrl.Result{}, r.patchResourceAndStatus(ctx, cr, patch, logger)
 }
 
-func (r *RouteWhitelistReconciler) updateConfigMap(ctx context.Context, watchedRoute route.Route, cr *networkingv1alpha1.RouteWhitelist, configMap *corev1.ConfigMap) error {
+func (r *RouteAllowlistReconciler) updateConfigMap(ctx context.Context, watchedRoute route.Route, cr *networkingv1alpha1.RouteAllowlist, configMap *corev1.ConfigMap) error {
 	apimeta.RemoveStatusCondition(&cr.Status.Conditions, "ConfigMapUpdateFailure")
 
 	patchBase := client.MergeFrom(configMap.DeepCopy())
@@ -233,13 +233,13 @@ func (r *RouteWhitelistReconciler) updateConfigMap(ctx context.Context, watchedR
 		configMap.Data = make(map[string]string)
 	}
 
-	originalWhitelist := watchedRoute.Annotations[WhiteListAnnotation]
-	configMap.Data[routeFullName] = originalWhitelist
+	original := watchedRoute.Annotations[AllowlistAnnotation]
+	configMap.Data[routeFullName] = original
 
 	return r.Patch(ctx, configMap, patchBase)
 }
 
-func (r *RouteWhitelistReconciler) handleDelete(ctx context.Context, routes *route.RouteList, cr *networkingv1alpha1.RouteWhitelist, patch client.Patch, logger logr.Logger) (ctrl.Result, error) {
+func (r *RouteAllowlistReconciler) handleDelete(ctx context.Context, routes *route.RouteList, cr *networkingv1alpha1.RouteAllowlist, patch client.Patch, logger logr.Logger) (ctrl.Result, error) {
 	apimeta.RemoveStatusCondition(&cr.Status.Conditions, "RouteDeleteFailure")
 
 	configMap := &corev1.ConfigMap{}
@@ -263,7 +263,7 @@ func (r *RouteWhitelistReconciler) handleDelete(ctx context.Context, routes *rou
 	}
 
 	setSuccessful(&cr.Status.Conditions, "Deleted")
-	controllerutil.RemoveFinalizer(cr, RouteWhitelistFinalizer)
+	controllerutil.RemoveFinalizer(cr, RouteAllowlistFinalizer)
 
 	cfgPatch := client.MergeFrom(configMap.DeepCopy())
 	err = controllerutil.RemoveOwnerReference(cr, configMap, r.Scheme)
@@ -278,7 +278,7 @@ func (r *RouteWhitelistReconciler) handleDelete(ctx context.Context, routes *rou
 
 }
 
-func (r *RouteWhitelistReconciler) patchErrorStatus(ctx context.Context, cr *networkingv1alpha1.RouteWhitelist, patch client.Patch, err error) (ctrl.Result, error) {
+func (r *RouteAllowlistReconciler) patchErrorStatus(ctx context.Context, cr *networkingv1alpha1.RouteAllowlist, patch client.Patch, err error) (ctrl.Result, error) {
 	patchErr := r.Status().Patch(ctx, cr, patch)
 
 	if patchErr != nil {
@@ -287,14 +287,14 @@ func (r *RouteWhitelistReconciler) patchErrorStatus(ctx context.Context, cr *net
 	return ctrl.Result{}, err
 }
 
-func (r *RouteWhitelistReconciler) unwatchRoute(ctx context.Context, watchedRoute route.Route, routePatch client.Patch,
-	cr *networkingv1alpha1.RouteWhitelist, configMap *corev1.ConfigMap, logger logr.Logger) error {
+func (r *RouteAllowlistReconciler) unwatchRoute(ctx context.Context, watchedRoute route.Route, routePatch client.Patch,
+	cr *networkingv1alpha1.RouteAllowlist, configMap *corev1.ConfigMap, logger logr.Logger) error {
 
 	routeFullName := fmt.Sprintf("%s__%s", watchedRoute.Namespace, watchedRoute.Name)
 
 	configMapPatch := client.MergeFrom(configMap.DeepCopy())
 
-	diff := diffSet(strings.Split(watchedRoute.Annotations[WhiteListAnnotation], " "), cr.Spec.IPRanges)
+	diff := diffSet(strings.Split(watchedRoute.Annotations[AllowlistAnnotation], " "), cr.Spec.IPRanges)
 	configMapValues := configMap.Data[routeFullName]
 
 	if diff == "" {
@@ -306,12 +306,12 @@ func (r *RouteWhitelistReconciler) unwatchRoute(ctx context.Context, watchedRout
 	}
 
 	if diff == "" {
-		delete(watchedRoute.Annotations, WhiteListAnnotation)
+		delete(watchedRoute.Annotations, AllowlistAnnotation)
 	} else {
 		if watchedRoute.Annotations == nil {
 			watchedRoute.Annotations = make(map[string]string)
 		}
-		watchedRoute.Annotations[WhiteListAnnotation] = diff
+		watchedRoute.Annotations[AllowlistAnnotation] = diff
 	}
 
 	err := r.Patch(ctx, configMap, configMapPatch)
@@ -323,7 +323,7 @@ func (r *RouteWhitelistReconciler) unwatchRoute(ctx context.Context, watchedRout
 	return r.Patch(ctx, &watchedRoute, routePatch)
 }
 
-func (r *RouteWhitelistReconciler) getConfigMap(ctx context.Context, configMap *corev1.ConfigMap, cr *networkingv1alpha1.RouteWhitelist) error {
+func (r *RouteAllowlistReconciler) getConfigMap(ctx context.Context, configMap *corev1.ConfigMap, cr *networkingv1alpha1.RouteAllowlist) error {
 	err := r.Get(ctx, types.NamespacedName{Name: WatchedRoutesConfigMapName, Namespace: r.WatchNamespace}, configMap)
 	if err == nil {
 		return r.setOwnerReferenceIfNotExists(ctx, configMap, cr)
@@ -339,7 +339,7 @@ func (r *RouteWhitelistReconciler) getConfigMap(ctx context.Context, configMap *
 	return err
 }
 
-func (r *RouteWhitelistReconciler) createConfigMap(ctx context.Context, cr *networkingv1alpha1.RouteWhitelist) error {
+func (r *RouteAllowlistReconciler) createConfigMap(ctx context.Context, cr *networkingv1alpha1.RouteAllowlist) error {
 	configMap := &corev1.ConfigMap{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      WatchedRoutesConfigMapName,
@@ -355,7 +355,7 @@ func (r *RouteWhitelistReconciler) createConfigMap(ctx context.Context, cr *netw
 	return r.Create(ctx, configMap)
 }
 
-func (r *RouteWhitelistReconciler) setOwnerReferenceIfNotExists(ctx context.Context, configMap *corev1.ConfigMap, cr *networkingv1alpha1.RouteWhitelist) error {
+func (r *RouteAllowlistReconciler) setOwnerReferenceIfNotExists(ctx context.Context, configMap *corev1.ConfigMap, cr *networkingv1alpha1.RouteAllowlist) error {
 	ok, err := controllerutil.HasOwnerReference(configMap.OwnerReferences, cr, r.Scheme)
 	if err == nil && !ok {
 		patchBase := client.MergeFrom(configMap.DeepCopy())
@@ -382,28 +382,28 @@ func setToIPString(s set.Set[string]) string {
 	return strings.Join(s.ToSlice(), " ")
 }
 
-func (r *RouteWhitelistReconciler) mapRouteToRouteWhiteList(ctx context.Context, obj client.Object) []reconcile.Request {
-	logger := log.FromContext(ctx).WithName("mapRouteToRouteWhiteList")
+func (r *RouteAllowlistReconciler) mapRouteToRouteAllowlist(ctx context.Context, obj client.Object) []reconcile.Request {
+	logger := log.FromContext(ctx).WithName("mapRouteToRouteAllowlist")
 	openshiftRoute := obj.(*route.Route)
 
 	if val, ok := openshiftRoute.Labels[IPShieldWatchedResourceLabel]; !ok || val != "true" {
 		return nil
 	}
 
-	whitelists := &networkingv1alpha1.RouteWhitelistList{}
-	err := r.List(ctx, whitelists)
+	allowlists := &networkingv1alpha1.RouteAllowlistList{}
+	err := r.List(ctx, allowlists)
 
 	if err != nil {
 		logger.Error(err, "failed to fetch crd list")
 		return nil
 	}
 
-	if len(whitelists.Items) == 0 {
+	if len(allowlists.Items) == 0 {
 		return nil
 	}
 
-	result := make([]reconcile.Request, len(whitelists.Items))
-	for i, crd := range whitelists.Items {
+	result := make([]reconcile.Request, len(allowlists.Items))
+	for i, crd := range allowlists.Items {
 		result[i] = reconcile.Request{
 			NamespacedName: types.NamespacedName{
 				Name:      crd.Name,
@@ -416,11 +416,11 @@ func (r *RouteWhitelistReconciler) mapRouteToRouteWhiteList(ctx context.Context,
 }
 
 // SetupWithManager sets up the controller with the Manager.
-func (r *RouteWhitelistReconciler) SetupWithManager(mgr ctrl.Manager) error {
+func (r *RouteAllowlistReconciler) SetupWithManager(mgr ctrl.Manager) error {
 	return ctrl.NewControllerManagedBy(mgr).
-		For(&networkingv1alpha1.RouteWhitelist{}, builder.WithPredicates(predicate.GenerationChangedPredicate{})).
+		For(&networkingv1alpha1.RouteAllowlist{}, builder.WithPredicates(predicate.GenerationChangedPredicate{})).
 		// Watch for route labels and annotations changes
-		Watches(&route.Route{}, handler.EnqueueRequestsFromMapFunc(r.mapRouteToRouteWhiteList),
+		Watches(&route.Route{}, handler.EnqueueRequestsFromMapFunc(r.mapRouteToRouteAllowlist),
 			builder.WithPredicates(predicate.Or(predicate.LabelChangedPredicate{}, predicate.AnnotationChangedPredicate{}))).
 		Complete(r)
 }

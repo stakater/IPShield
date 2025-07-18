@@ -37,12 +37,12 @@ import (
 	networkingv1alpha1 "github.com/stakater/ipshield-operator/api/v1alpha1"
 )
 
-var _ = Describe("RouteWhitelist Controller", Ordered, func() {
+var _ = Describe("RouteAllowlist Controller", Ordered, func() {
 
 	var (
 		ctx        context.Context
-		reconciler *RouteWhitelistReconciler
-		whitelist  *networkingv1alpha1.RouteWhitelist
+		reconciler *RouteAllowlistReconciler
+		allowlist  *networkingv1alpha1.RouteAllowlist
 		r          *unstructured.Unstructured
 		fakeClient client.Client
 	)
@@ -88,15 +88,15 @@ var _ = Describe("RouteWhitelist Controller", Ordered, func() {
 			"data": nil,
 		})
 
-		whitelist = utils.GetRouteWhiteListSpec("test-route", DefaultWatchNamespace, []string{"10.100.123.24"})
+		allowlist = utils.GetRouteAllowlistSpec("test-route", DefaultWatchNamespace, []string{"10.100.123.24"})
 
 		fakeClient = fakeclient.NewClientBuilder().
 			WithScheme(scheme).
-			WithObjects(r, whitelist, configMap).
-			WithStatusSubresource(r, whitelist, configMap).
+			WithObjects(r, allowlist, configMap).
+			WithStatusSubresource(r, allowlist, configMap).
 			Build()
 
-		reconciler = &RouteWhitelistReconciler{
+		reconciler = &RouteAllowlistReconciler{
 			Client:         fakeClient,
 			Scheme:         scheme,
 			WatchNamespace: DefaultWatchNamespace,
@@ -111,8 +111,8 @@ var _ = Describe("RouteWhitelist Controller", Ordered, func() {
 
 		_, err := reconciler.Reconcile(ctx, reconcile.Request{
 			NamespacedName: types.NamespacedName{
-				Namespace: whitelist.Namespace,
-				Name:      whitelist.Name,
+				Namespace: allowlist.Namespace,
+				Name:      allowlist.Name,
 			},
 		})
 		Expect(err).NotTo(HaveOccurred())
@@ -121,17 +121,17 @@ var _ = Describe("RouteWhitelist Controller", Ordered, func() {
 		err = fakeClient.Get(ctx, types.NamespacedName{Namespace: r.GetNamespace(), Name: r.GetName()}, osRoute)
 
 		Expect(err).NotTo(HaveOccurred())
-		Expect(osRoute.Annotations).To(HaveKeyWithValue(WhiteListAnnotation, "10.100.123.24"))
+		Expect(osRoute.Annotations).To(HaveKeyWithValue(AllowlistAnnotation, "10.100.123.24"))
 
-		Expect(fakeClient.Get(ctx, types.NamespacedName{Namespace: whitelist.Namespace, Name: whitelist.Name}, whitelist)).Should(Succeed())
-		Expect(whitelist.Status.Conditions).To(HaveLen(1))
+		Expect(fakeClient.Get(ctx, types.NamespacedName{Namespace: allowlist.Namespace, Name: allowlist.Name}, allowlist)).Should(Succeed())
+		Expect(allowlist.Status.Conditions).To(HaveLen(1))
 
-		Expect(whitelist.Status.Conditions[0].Type).Should(Equal("Admitted"))
+		Expect(allowlist.Status.Conditions[0].Type).Should(Equal("Admitted"))
 
 		watchedRoutes := &corev1.ConfigMap{}
 		Expect(fakeClient.Get(ctx, types.NamespacedName{Namespace: DefaultWatchNamespace, Name: WatchedRoutesConfigMapName}, watchedRoutes)).Should(Succeed())
 		Expect(watchedRoutes.Data).To(HaveKey(fmt.Sprintf("%s__%s", osRoute.Namespace, osRoute.Name)))
-		ok, err := controllerutil.HasOwnerReference(watchedRoutes.OwnerReferences, whitelist, scheme2.Scheme)
+		ok, err := controllerutil.HasOwnerReference(watchedRoutes.OwnerReferences, allowlist, scheme2.Scheme)
 		Expect(err).NotTo(HaveOccurred())
 		Expect(ok).To(BeTrue())
 	})
@@ -143,25 +143,25 @@ var _ = Describe("RouteWhitelist Controller", Ordered, func() {
 		err := fakeClient.Get(ctx, types.NamespacedName{Namespace: r.GetNamespace(), Name: r.GetName()}, osRoute)
 		Expect(err).NotTo(HaveOccurred())
 
-		osRoute.Annotations[WhiteListAnnotation] = "10.33.52.5"
+		osRoute.Annotations[AllowlistAnnotation] = "10.33.52.5"
 		Expect(fakeClient.Update(ctx, osRoute)).To(Succeed())
 
 		_, err = reconciler.Reconcile(ctx, reconcile.Request{
 			NamespacedName: types.NamespacedName{
-				Namespace: whitelist.Namespace,
-				Name:      whitelist.Name,
+				Namespace: allowlist.Namespace,
+				Name:      allowlist.Name,
 			},
 		})
 
 		Expect(err).NotTo(HaveOccurred())
 		Expect(fakeClient.Get(ctx, types.NamespacedName{Namespace: r.GetNamespace(), Name: r.GetName()}, osRoute)).To(Succeed())
-		Expect(osRoute.Annotations).To(HaveKey(WhiteListAnnotation))
-		Expect(strings.Split(osRoute.Annotations[WhiteListAnnotation], " ")).Should(ConsistOf([]string{"10.100.123.24", "10.33.52.5"}))
+		Expect(osRoute.Annotations).To(HaveKey(AllowlistAnnotation))
+		Expect(strings.Split(osRoute.Annotations[AllowlistAnnotation], " ")).Should(ConsistOf([]string{"10.100.123.24", "10.33.52.5"}))
 
-		Expect(fakeClient.Get(ctx, types.NamespacedName{Namespace: whitelist.Namespace, Name: whitelist.Name}, whitelist)).Should(Succeed())
-		Expect(whitelist.Status.Conditions).To(HaveLen(1))
+		Expect(fakeClient.Get(ctx, types.NamespacedName{Namespace: allowlist.Namespace, Name: allowlist.Name}, allowlist)).Should(Succeed())
+		Expect(allowlist.Status.Conditions).To(HaveLen(1))
 
-		Expect(whitelist.Status.Conditions[0].Type).Should(Equal("Admitted"))
+		Expect(allowlist.Status.Conditions[0].Type).Should(Equal("Admitted"))
 
 		watchedRoutes := &corev1.ConfigMap{}
 		Expect(fakeClient.Get(ctx, types.NamespacedName{Namespace: DefaultWatchNamespace, Name: WatchedRoutesConfigMapName}, watchedRoutes)).Should(Succeed())
@@ -174,50 +174,50 @@ var _ = Describe("RouteWhitelist Controller", Ordered, func() {
 		osRoute := &v1.Route{}
 		Expect(fakeClient.Get(ctx, types.NamespacedName{Namespace: r.GetNamespace(), Name: r.GetName()}, osRoute)).To(Succeed())
 
-		osRoute.Annotations[WhiteListAnnotation] = "10.33.52.5"
+		osRoute.Annotations[AllowlistAnnotation] = "10.33.52.5"
 		Expect(fakeClient.Update(ctx, osRoute)).Should(Succeed())
 
 		_, err := reconciler.Reconcile(ctx, reconcile.Request{
 			NamespacedName: types.NamespacedName{
-				Namespace: whitelist.Namespace,
-				Name:      whitelist.Name,
+				Namespace: allowlist.Namespace,
+				Name:      allowlist.Name,
 			},
 		})
 
 		Expect(err).NotTo(HaveOccurred())
 
 		Expect(fakeClient.Get(ctx, types.NamespacedName{Namespace: r.GetNamespace(), Name: r.GetName()}, osRoute)).To(Succeed())
-		Expect(osRoute.Annotations).To(HaveKey(WhiteListAnnotation))
-		Expect(strings.Split(osRoute.Annotations[WhiteListAnnotation], " ")).Should(ConsistOf([]string{"10.100.123.24", "10.33.52.5"}))
+		Expect(osRoute.Annotations).To(HaveKey(AllowlistAnnotation))
+		Expect(strings.Split(osRoute.Annotations[AllowlistAnnotation], " ")).Should(ConsistOf([]string{"10.100.123.24", "10.33.52.5"}))
 
-		Expect(fakeClient.Get(ctx, types.NamespacedName{Namespace: whitelist.Namespace, Name: whitelist.Name}, whitelist)).Should(Succeed())
-		Expect(whitelist.Status.Conditions).To(HaveLen(1))
+		Expect(fakeClient.Get(ctx, types.NamespacedName{Namespace: allowlist.Namespace, Name: allowlist.Name}, allowlist)).Should(Succeed())
+		Expect(allowlist.Status.Conditions).To(HaveLen(1))
 
-		Expect(whitelist.Status.Conditions[0].Type).Should(Equal("Admitted"))
+		Expect(allowlist.Status.Conditions[0].Type).Should(Equal("Admitted"))
 
 		watchedRoutes := &corev1.ConfigMap{}
 		Expect(fakeClient.Get(ctx, types.NamespacedName{Namespace: DefaultWatchNamespace, Name: WatchedRoutesConfigMapName}, watchedRoutes)).Should(Succeed())
 		Expect(watchedRoutes.Data).To(HaveKeyWithValue(fmt.Sprintf("%s__%s", osRoute.Namespace, osRoute.Name), "10.33.52.5"))
 
-		Expect(fakeClient.Delete(ctx, whitelist)).Should(Succeed())
+		Expect(fakeClient.Delete(ctx, allowlist)).Should(Succeed())
 
 		_, err = reconciler.Reconcile(ctx, reconcile.Request{
 			NamespacedName: types.NamespacedName{
-				Namespace: whitelist.Namespace,
-				Name:      whitelist.Name,
+				Namespace: allowlist.Namespace,
+				Name:      allowlist.Name,
 			},
 		})
 
 		Expect(err).NotTo(HaveOccurred())
 
 		Expect(fakeClient.Get(ctx, types.NamespacedName{Namespace: r.GetNamespace(), Name: r.GetName()}, osRoute)).To(Succeed())
-		Expect(osRoute.Annotations).To(HaveKey(WhiteListAnnotation))
-		Expect(strings.Split(osRoute.Annotations[WhiteListAnnotation], " ")).Should(ConsistOf([]string{"10.33.52.5"}))
+		Expect(osRoute.Annotations).To(HaveKey(AllowlistAnnotation))
+		Expect(strings.Split(osRoute.Annotations[AllowlistAnnotation], " ")).Should(ConsistOf([]string{"10.33.52.5"}))
 
 		Expect(fakeClient.Get(ctx, types.NamespacedName{Namespace: DefaultWatchNamespace, Name: WatchedRoutesConfigMapName}, watchedRoutes)).Should(Succeed())
 		Expect(watchedRoutes.Data).ShouldNot(HaveKey(fmt.Sprintf("%s__%s", osRoute.Namespace, osRoute.Name)))
 
-		ok, err := controllerutil.HasOwnerReference(watchedRoutes.OwnerReferences, whitelist, scheme2.Scheme)
+		ok, err := controllerutil.HasOwnerReference(watchedRoutes.OwnerReferences, allowlist, scheme2.Scheme)
 		Expect(err).NotTo(HaveOccurred())
 		Expect(ok).To(BeFalse())
 	})

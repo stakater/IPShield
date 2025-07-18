@@ -5,12 +5,12 @@ metadata:
   labels:
     app.kubernetes.io/managed-by: kustomize
     app.kubernetes.io/name: ipshield-operator
-  name: ipshield-operator-routewhitelist-editor-role
+  name: ipshield-operator-routeallowlist-editor-role
 rules:
 - apiGroups:
   - networking.stakater.com
   resources:
-  - routewhitelists
+  - routeallowlists
   verbs:
   - create
   - delete
@@ -22,6 +22,6 @@ rules:
 - apiGroups:
   - networking.stakater.com
   resources:
-  - routewhitelists/status
+  - routeallowlists/status
   verbs:
   - get

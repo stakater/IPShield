@@ -1,14 +1,14 @@
 # IPShield
 
-IPShield Operator for OpenShift simplifies IP whitelisting for routes by automating the process of applying whitelisting annotations. OpenShift routes support IP whitelisting via `haproxy.router.openshift.io/ip_whitelist` annotation, but manually managing these can be cumbersome. With IPShield, users specify a label selector and a set of IP ranges, and the operator automatically applies the necessary annotations to all matching routes. This ensures consistency and reduces operational overhead.
+IPShield Operator for OpenShift simplifies IP access control for routes by automating the process of applying IP restriction annotations. OpenShift routes support IP filtering via `haproxy.router.openshift.io/ip_whitelist` annotation, but manually managing these can be cumbersome. With IPShield, users specify a label selector and a set of IP ranges, and the operator automatically applies the necessary annotations to all matching routes. This ensures consistency and reduces operational overhead.
 
 ## Features
 
-- **Automated IP Whitelisting:** Dynamically applies whitelisting annotations based on user-defined label selectors and IP ranges
+- **Automated IP Access Control:** Dynamically applies IP restriction annotations based on user-defined label selectors and IP ranges
 
-- **Quick Enable/Disable:** Only applies to routes with the annotation ip-whitelist.stakater.cloud/enabled set to true.
+- **Quick Enable/Disable:** Only applies to routes with the annotation ip-allowlist.stakater.cloud/enabled set to true.
 - **Configurable Watch Namespace:** Users can configure the `WATCH_NAMESPACE` environment variable. Operator will apply CRDs only from this namespace.
-- **Whitelist State Preservation:** If a whitelist annotation exists before the CRD is applied, it is stored in a ConfigMap and restored when the CRD is removed.
+- **IP Configuration Preservation:** If an IP restriction annotation exists before the CRD is applied, it is stored in a ConfigMap and restored when the CRD is removed.
 - **Continuous Monitoring:** Watches for changes in routes and updates annotations accordingly.
 - **Reduced Manual Effort:** Eliminates the need for users to manually update route annotations.
 - **Seamless Integration:** Works with existing OpenShift route configurations.
@@ -98,15 +98,15 @@ Users can just run kubectl apply -f <URL for YAML BUNDLE> to install the project
 kubectl apply -f https://raw.githubusercontent.com/<org>/ipshield-operator/<tag or branch>/dist/install.yaml
 ```
 ## Usage
-1. Define a RouteWhitelist custom resource (CR) specifying the label selector and allowed IP ranges:
+1. Define a RouteAllowlist custom resource (CR) specifying the label selector and allowed IP ranges:
 ```yaml
 apiVersion: networking.stakater.com/v1alpha1
-kind: RouteWhitelist
+kind: RouteAllowlist
 metadata:
   labels:
     app.kubernetes.io/name: ipshield-operator
     app.kubernetes.io/managed-by: kustomize
-  name: routewhitelist-sample
+  name: routeallowlist-sample
 spec:
   labelSelector:
     matchLabels:
@@ -115,13 +115,13 @@ spec:
     - 10.100.110.11
     - 10.100.110.12
 ```
-2. Apply the `ip-whitelist.stakater.cloud/enabled` label to the desired route e.g.
+2. Apply the `ip-allowlist.stakater.cloud/enabled` label to the desired route e.g.
 ```sh
-kubectl label routes nginx-deployment ip-whitelist.stakater.cloud/enabled=true -n mywebserver --overwrite
+kubectl label routes nginx-deployment ip-allowlist.stakater.cloud/enabled=true -n mywebserver --overwrite
 ```
-3. Apply this whitelist to a namespace watched by IPShield operator
+3. Apply this IP access control configuration to a namespace watched by IPShield operator
 ```sh
-kubectl apply -f whitelist.yaml -n $WATCH_NAMESPACE
+kubectl apply -f allowlist.yaml -n $WATCH_NAMESPACE
 ```
 
 ## License

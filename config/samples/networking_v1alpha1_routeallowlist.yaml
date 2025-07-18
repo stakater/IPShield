@@ -1,12 +1,12 @@
 # To ensure operator doesn't manage all routes for security reason each route must add label to enable watch
-# ip-whitelist.stakater.cloud/enabled: 'true'
+# ipshield.stakater.cloud/enabled: 'true'
 apiVersion: networking.stakater.com/v1alpha1
-kind: RouteWhitelist
+kind: RouteAllowlist
 metadata:
   labels:
     app.kubernetes.io/name: ipshield-operator
     app.kubernetes.io/managed-by: kustomize
-  name: routewhitelist-sample
+  name: routeallowlist-sample
 spec:
   labelSelector:
     matchLabels:
