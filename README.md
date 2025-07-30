@@ -6,7 +6,7 @@ IPShield Operator for OpenShift simplifies IP access control for routes by autom
 
 - **Automated IP Access Control:** Dynamically applies IP restriction annotations based on user-defined label selectors and IP ranges
 
-- **Quick Enable/Disable:** Only applies to routes with the annotation ip-allowlist.stakater.cloud/enabled set to true.
+- **Quick Enable/Disable:** Only applies to routes with the annotation ipshield.stakater.cloud/enabled set to true.
 - **Configurable Watch Namespace:** Users can configure the `WATCH_NAMESPACE` environment variable. Operator will apply CRDs only from this namespace.
 - **IP Configuration Preservation:** If an IP restriction annotation exists before the CRD is applied, it is stored in a ConfigMap and restored when the CRD is removed.
 - **Continuous Monitoring:** Watches for changes in routes and updates annotations accordingly.
@@ -115,9 +115,9 @@ spec:
     - 10.100.110.11
     - 10.100.110.12
 ```
-2. Apply the `ip-allowlist.stakater.cloud/enabled` label to the desired route e.g.
+2. Apply the `ipshield.stakater.cloud/enabled` label to the desired route e.g.
 ```sh
-kubectl label routes nginx-deployment ip-allowlist.stakater.cloud/enabled=true -n mywebserver --overwrite
+kubectl label routes nginx-deployment ipshield.stakater.cloud/enabled=true -n mywebserver --overwrite
 ```
 3. Apply this IP access control configuration to a namespace watched by IPShield operator
 ```sh
