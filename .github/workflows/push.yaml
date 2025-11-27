@@ -1,6 +1,10 @@
 name: Push
 
 on:
+  pull_request:
+    branches:
+      - main
+      - release
   push:
     branches:
       - main
@@ -14,7 +18,7 @@ jobs:
   push-operator:
     name: Push Operator
     if: "! contains(toJSON(github.event.commits.*.message), '[skip-ci]')"
-    uses: stakater/.github/.github/workflows/operator_push.yaml@main
+    uses: stakater/.github/.github/workflows/operator_push.yaml@fix/tag-auto-bump
     secrets:
       SLACK_WEBHOOK_URL: ${{ secrets.STAKATER_DELIVERY_SLACK_WEBHOOK }}
       CONTAINER_REGISTRY_URL: ghcr.io/stakater
@@ -23,3 +27,4 @@ jobs:
     with:
       ENABLE_LINTING: true
       ENABLE_UNIT_TESTS: true
+      GO_VERSION: 1.23.0
